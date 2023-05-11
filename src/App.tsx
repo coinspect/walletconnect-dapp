@@ -291,10 +291,11 @@ class App extends React.Component<any, any> {
     // ************ INSERT CODE SNIPPET HERE *************
 
     // ************ INSERT CODE SNIPPET HERE *************
-    /* tslint:enable:no-string-literal */
+    
     
     eip712Msg["message"]["target"] = '0x0101010101010101010101010101010101010101'
     eip712Msg["message"]["message"] = 'Howdy'
+    /* tslint:enable:no-string-literal */
 
 
     // eth_signTypedData params
