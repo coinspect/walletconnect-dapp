@@ -12,14 +12,15 @@ import Loader from "./components/Loader";
 import { fonts } from "./styles";
 import { apiGetAccountAssets } from "./helpers/api";
 import {
-  verifySignature,
-  hashTypedDataMessage,
-  recoverAddress,
+  // hashTypedDataMessage,
+  getChainData,
 } from "./helpers/utilities";
+import { providers } from "ethers";
 import { IAssetData } from "./helpers/types";
 import Banner from "./components/Banner";
 import AccountAssets from "./components/AccountAssets";
 import { eip712 } from "./helpers/eip712";
+import { verifyMessage } from '@ambire/signature-validator';
 
 const SLayout = styled.div`
   position: relative;
@@ -278,6 +279,23 @@ class App extends React.Component<any, any> {
 
   public toggleModal = () => this.setState({ showModal: !this.state.showModal });
 
+  public verifySignatureInternal = async (typedData:any, sig:string, address:string, chainId:any) => {
+    const rpcUrl = getChainData(chainId).rpc_url;
+    const provider = new providers.JsonRpcProvider(rpcUrl);
+
+    const isValidSig = await verifyMessage({
+	    signer: address,
+	    typedData,
+	    signature: sig,
+	    // this is needed so that smart contract signatures can be verified
+	    provider,
+    })
+    console.log('is the sig valid: ', isValidSig)
+    return isValidSig
+  
+  }
+
+  
   public testSignTypedData = async () => {
     const { connector, address, chainId } = this.state;
 
@@ -289,12 +307,11 @@ class App extends React.Component<any, any> {
     
     /* tslint:disable:no-string-literal */
     // ************ INSERT CODE SNIPPET HERE *************
-
+    
     // ************ INSERT CODE SNIPPET HERE *************
-    
-    
-    eip712Msg["message"]["target"] = '0x0101010101010101010101010101010101010101'
+    // eip712Msg["message"]["＂target"] = '0x0101010101010101010101010101010101010101'
     eip712Msg["message"]["message"] = 'Howdy'
+    eip712Msg["message"]["target"] = '0x0101010101010101010101010101010101010101'
     /* tslint:enable:no-string-literal */
 
 
@@ -313,6 +330,7 @@ class App extends React.Component<any, any> {
 
       // sign typed data
       const result = await connector.signTypedData(msgParams);
+      console.log("result",result)
 
       // verify signature
       const cleanMsg= eip712.example
@@ -320,18 +338,23 @@ class App extends React.Component<any, any> {
       cleanMsg["message"]["target"] = '0x0101010101010101010101010101010101010101'
       cleanMsg["message"]["message"] = 'Howdy'
       /* tslint:enable:no-string-literal */
-      const hash = hashTypedDataMessage(JSON.stringify(cleanMsg));
-      const valid = await verifySignature(address, result, hash, chainId);
+      
+      // const hash = hashTypedDataMessage(JSON.stringify(cleanMsg));
+      // const valid = await verifySignature(address, result, hash, chainId);
 
-      const recoveredAddress = await recoverAddress(result, hash)
+      const valid  = await this.verifySignatureInternal(cleanMsg, result, address, chainId)
+
+      console.log("valid ", valid)
+      // const recoveredAddress = await recoverAddress(result, hash)
+      const shortResult = result.slice(0, 100) + '...'
 
       // format displayed result
       const formattedResult = {
         method: "eth_signTypedData",
         "Signing address": address,
         valid,
-        result,
-        "Recovered address": recoveredAddress,
+        shortResult,
+        "Recovered address": address,
       };
 
       // display result
